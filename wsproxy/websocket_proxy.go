@@ -292,7 +292,18 @@ func (p *Proxy) proxy(w http.ResponseWriter, r *http.Request) {
 		scannerBuf = make([]byte, 0, 64*1024)
 		scanner.Buffer(scannerBuf, p.maxRespBodyBufferBytes)
 	}
+	// we use a custom split function to ensure that response is sent to the websocket client as is
+	// otherwise, response will be broken into lines (due to the default scanner splitting function).
+	// todo: enforce websocket max size on data
+	split := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		if atEOF {
+			return 0, nil, nil
+		}
+		// if not EOF, request more data from the scanner
+		return len(data), data, nil
+	}
 
+	scanner.Split(split)
 	for scanner.Scan() {
 		if len(scanner.Bytes()) == 0 {
 			p.logger.Warnln("[write] empty scan", scanner.Err())
