@@ -305,11 +305,12 @@ func (p *Proxy) proxy(w http.ResponseWriter, r *http.Request) {
 
 	scanner.Split(split)
 	for scanner.Scan() {
-		if len(scanner.Bytes()) == 0 {
+		res := strings.Trim(scanner.Text(), "\n")
+		if res == "" {
 			p.logger.Warnln("[write] empty scan", scanner.Err())
 			continue
 		}
-		p.logger.Debugln("[write] scanned", scanner.Text())
+		p.logger.Debugln("[write] scanned", res)
 		if err = conn.WriteMessage(websocket.TextMessage, scanner.Bytes()); err != nil {
 			p.logger.Warnln("[write] error writing websocket message:", err)
 			return
